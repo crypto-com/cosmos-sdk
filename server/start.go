@@ -179,14 +179,12 @@ func startStandAlone(ctx *Context, appCreator types.AppCreator) error {
 		tmos.Exit(err.Error())
 	}
 
-	TrapSignal(func() {
-		if err = svr.Stop(); err != nil {
-			tmos.Exit(err.Error())
-		}
-	})
+	WaitForQuitSignals()
+	if err = svr.Stop(); err != nil {
+		tmos.Exit(err.Error())
+	}
 
-	// run forever (the node will not be returned)
-	select {}
+	return nil
 }
 
 // legacyAminoCdc is used for the legacy REST API
@@ -290,26 +288,23 @@ func startInProcess(ctx *Context, clientCtx client.Context, appCreator types.App
 		}
 	}
 
-	TrapSignal(func() {
-		if tmNode.IsRunning() {
-			_ = tmNode.Stop()
-		}
+	WaitForQuitSignals()
 
-		if cpuProfileCleanup != nil {
-			cpuProfileCleanup()
-		}
+	if tmNode.IsRunning() {
+		_ = tmNode.Stop()
+	}
 
-		if apiSrv != nil {
-			_ = apiSrv.Close()
-		}
+	if cpuProfileCleanup != nil {
+		cpuProfileCleanup()
+	}
 
-		if grpcSrv != nil {
-			grpcSrv.Stop()
-		}
+	if apiSrv != nil {
+		_ = apiSrv.Close()
+	}
 
-		ctx.Logger.Info("exiting...")
-	})
+	if grpcSrv != nil {
+		grpcSrv.Stop()
+	}
 
-	// run forever (the node will not be returned)
-	select {}
+	return nil
 }
